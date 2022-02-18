@@ -1,11 +1,14 @@
+from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from datetime import date
 from django.urls import reverse
 
+from account.models import MyUser
+
 
 class Category(models.Model):
     name = models.CharField(max_length=150)
-    description = models.TextField()
     url = models.SlugField(max_length=160, unique=True)
 
     def __str__(self):
@@ -35,7 +38,6 @@ class Actor(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(max_length=100)
-    description = models.TextField()
     url = models.SlugField(max_length=160, unique=True)
 
     def __str__(self):
@@ -58,8 +60,7 @@ class Movie(models.Model):
     genres = models.ManyToManyField(Genre, verbose_name="genres")
     world_premiere = models.DateField(default=date.today)
     category = models.ForeignKey(Category, verbose_name="Category", on_delete=models.SET_NULL, null=True)
-    url = models.SlugField(max_length=130, unique=True)
-    draft = models.BooleanField(default=False)
+    url = models.URLField(max_length=200, default='')
 
     def __str__(self):
         return self.title
@@ -75,41 +76,20 @@ class Movie(models.Model):
         verbose_name_plural = "Movies"
 
 
-class MovieShots(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    image = models.ImageField(upload_to="movie_shots")
-    movie = models.ForeignKey(Movie, verbose_name="Movie", on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.title
+class Favorites(models.Model):
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='favorites')
+    user = models.ForeignKey(get_user_model(),
+                             on_delete=models.CASCADE,
+                             related_name='added_to_favorites')
 
     class Meta:
-        verbose_name = "Movie shot"
-        verbose_name_plural = "Movie shots"
-
-
-class RatingStar(models.Model):
-    value = models.SmallIntegerField(default=0)
-
-    def __str__(self):
-        return f'{self.value}'
-
-    class Meta:
-        verbose_name = "Star rating"
-        verbose_name_plural = "Stars rating"
-        ordering = ["-value"]
+        unique_together = ['movie', 'user']
 
 
 class Rating(models.Model):
-    ip = models.CharField(max_length=15)
-    star = models.ForeignKey(RatingStar, on_delete=models.CASCADE, verbose_name="Stars")
-    movie = models.ForeignKey(
-        Movie,
-        on_delete=models.CASCADE,
-        verbose_name="movie",
-        related_name="ratings"
-    )
+    star = models.SmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)])
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, verbose_name="movie", related_name="ratings")
 
     def __str__(self):
         return f"{self.star} - {self.movie}"
@@ -123,10 +103,10 @@ class Review(models.Model):
     email = models.EmailField()
     name = models.CharField(max_length=100)
     text = models.TextField(max_length=5000)
-    parent = models.ForeignKey(
-        'self', verbose_name="Parent", on_delete=models.SET_NULL, blank=True, null=True, related_name="children"
-    )
+    parent = models.ForeignKey('self', verbose_name="Parent", on_delete=models.SET_NULL, blank=True, null=True,
+                               related_name="children")
     movie = models.ForeignKey(Movie, verbose_name="movie", on_delete=models.CASCADE, related_name="reviews")
+    likes = models.ManyToManyField(MyUser, related_name='likers', blank=True)
 
     def __str__(self):
         return f"{self.name} - {self.movie}"

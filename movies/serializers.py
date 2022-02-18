@@ -3,84 +3,77 @@ from rest_framework import serializers
 from .models import *
 
 
-class FilterReviewListSerializer(serializers.ListSerializer):
-    """Фильтр комментариев, только parents"""
-    def to_representation(self, data):
-        data = data.filter(parent=None)
-        return super().to_representation(data)
-
-
-class RecursiveSerializer(serializers.Serializer):
-    """Вывод рекурсивно children"""
-    def to_representation(self, value):
-        serializer = self.parent.parent.__class__(value, context=self.context)
-        return serializer.data
-
-
-class ActorListSerializer(serializers.ModelSerializer):
-    """Вывод списка актеров и режиссеров"""
+class ActorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Actor
-        fields = ("id", "name", "image")
+        fields = '__all__'
 
 
 class ActorDetailSerializer(serializers.ModelSerializer):
-    """Вывод полного описани актера или режиссера"""
     class Meta:
         model = Actor
         fields = "__all__"
 
 
 class MovieListSerializer(serializers.ModelSerializer):
-    """Список фильмов"""
-    rating_user = serializers.BooleanField()
-    middle_star = serializers.IntegerField()
-
     class Meta:
         model = Movie
-        fields = ("id", "title", "tagline", "category", "rating_user", "middle_star", "poster")
+        fields = ("id", "title", "tagline", "category", "poster")
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = "__all__"
 
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
-    """Добавление отзыва"""
-
     class Meta:
         model = Review
         fields = "__all__"
 
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """Вывод отзыво"""
-    children = RecursiveSerializer(many=True)
-
     class Meta:
-        list_serializer_class = FilterReviewListSerializer
         model = Review
         fields = ("id", "name", "text", "children")
 
+    def to_representation(self, instance):
+        representation = super(ReviewSerializer, self).to_representation(instance)
+        representation['likes'] = instance.likes.count()
+        action = self.context.get('action')
+        if action == 'list':
+            representation['comments'] = instance.commenty.count()
+        else:
+            representation['comments'] = ReviewCreateSerializer(instance.commenty.all(), many=True).data
+        return representation
+
 
 class MovieDetailSerializer(serializers.ModelSerializer):
-    """Полный фильм"""
     category = serializers.SlugRelatedField(slug_field="name", read_only=True)
-    directors = ActorListSerializer(read_only=True, many=True)
-    actors = ActorListSerializer(read_only=True, many=True)
+    directors = ActorSerializer(read_only=True, many=True)
+    actors = ActorSerializer(read_only=True, many=True)
     genres = serializers.SlugRelatedField(slug_field="name", read_only=True, many=True)
     reviews = ReviewSerializer(many=True)
 
     class Meta:
         model = Movie
-        exclude = ("draft",)
+        fields = '__all__'
 
 
 class CreateRatingSerializer(serializers.ModelSerializer):
-    """Добавление рейтинга пользователем"""
     class Meta:
         model = Rating
         fields = ("star", "movie")
 
+    @staticmethod
+    def validate_star(star):
+        if star not in range(1, 6):
+            raise serializers.ValidationError('Рейтинг должен быть от 1 до 5')
+        return star
+
     def create(self, validated_data):
         rating, _ = Rating.objects.update_or_create(
-            ip=validated_data.get('ip', None),
             movie=validated_data.get('movie', None),
             defaults={'star': validated_data.get("star")}
         )

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from .models import Actor
 from .serializers import (
-    ActorListSerializer,
+    ActorSerializer,
     ActorDetailSerializer,
 )
 
@@ -13,7 +13,7 @@ from .serializers import (
 class ActorViewSet(viewsets.ViewSet):
     def list(self, request):
         queryset = Actor.objects.all()
-        serializer = ActorListSerializer(queryset, many=True)
+        serializer = ActorSerializer(queryset, many=True)
         return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
@@ -25,11 +25,11 @@ class ActorViewSet(viewsets.ViewSet):
 
 class ActorReadOnly(viewsets.ReadOnlyModelViewSet):
     queryset = Actor.objects.all()
-    serializer_class = ActorListSerializer
+    serializer_class = ActorSerializer
 
 
 class ActorModelViewSet(viewsets.ModelViewSet):
-    serializer_class = ActorListSerializer
+    serializer_class = ActorSerializer
     queryset = Actor.objects.all()
 
     @action(detail=True, methods=['get', 'put'])

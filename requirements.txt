@@ -6,8 +6,10 @@ python-decouple
 django-phonenumber-field
 phonenumbers
 twilio
-djangorestframework-simplejwt
 drf-yasg
+djangorestframework-simplejwt
 django-ckeditor
 django-filter
 djoser
+celery
+django-celery-beat
