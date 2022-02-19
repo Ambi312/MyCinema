@@ -1,6 +1,7 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.crypto import get_random_string
 
 
 class MyUserManager(BaseUserManager):
@@ -27,17 +28,14 @@ class MyUserManager(BaseUserManager):
 
 class MyUser(AbstractUser):
     username = None
-    email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=100, unique=True)
     is_active = models.BooleanField(default=False)
     activation_code = models.CharField(max_length=50, blank=True)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
-
     objects = MyUserManager()
 
-    def __str__(self):
-        return self.email
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
 
     def create_activation_code(self):
         import hashlib
@@ -46,3 +44,10 @@ class MyUser(AbstractUser):
         md5_object = hashlib.md5(encode_string)
         activation_code = md5_object.hexdigest()
         self.activation_code = activation_code
+
+    def create_activation_mobile(self):
+        code = get_random_string(length=6, allowed_chars='123456789')
+        self.activation_code = code
+
+    def __str__(self):
+        return f'{self.username} {self.email}'

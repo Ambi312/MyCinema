@@ -1,26 +1,17 @@
-from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 
-from cinema.celery import app
 
-
-User = get_user_model()
-
-
-@app.task
-def send_activation_mail(email, code):
-    message = f'Ваш код активации: {code}'
-    send_mail('Активация аккаунта',
-              message,
-              'test@mail.com',
-              [email])
-
-
-@app.task
-def send_beat_email():
-    for contact in User.objects.all():
-        message = f'Это Спам'
-        send_mail('Онлайн Кинотеатр',
-                  message,
-                  'test@mail.com',
-                  [contact.email])
+def send_activation_code(email, activation_code):
+    activation_url = f'http://localhost:8000/v1/api/account/activate/{activation_code}'
+    message = f"""
+        Thank you for signing up.
+        Please, activate your account.
+        Activation link: {activation_url}
+        """
+    send_mail(
+        'Activate your account',
+        message,
+        'companytestorganization@gmail.com',
+        [email, ],
+        fail_silently=False
+    )

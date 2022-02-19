@@ -3,11 +3,11 @@ from rest_framework.routers import SimpleRouter
 from rest_framework.urlpatterns import format_suffix_patterns
 
 from .views import (MovieViewSet, ReviewCreateViewSet,
-                    AddStarRatingViewSet, ActorsViewSet, FavoriteViewSet, GenreViewSet)
+                    AddStarRatingViewSet, ActorsViewSet, FavouriteViewSet, GenreViewSet)
 
 router = SimpleRouter()
 router.register('genre', GenreViewSet)
-router.register('favorites', FavoriteViewSet)
+router.register('favourites', FavouriteViewSet)
 router.register('actor', ActorsViewSet)
 
 urlpatterns = format_suffix_patterns([

@@ -93,11 +93,11 @@ class ActorsViewSet(ModelViewSet):
             return ActorDetailSerializer
 
 
-class FavoriteViewSet(ModelViewSet):
+class FavouriteViewSet(ModelViewSet):
     queryset = Movie.objects.all()
 
     def get_permissions(self):
-        if self.action in ['create', 'add_to_favorites', 'remove_from_favorites', 'like']:
+        if self.action in ['create', 'add_to_favorites', 'remove_from_favorites']:
             return [IsAuthenticated()]
         elif self.action in ['update', 'partial_update', 'destroy']:
             return [IsAdmin()]
@@ -108,7 +108,7 @@ class FavoriteViewSet(ModelViewSet):
         movie = self.get_object()
         if request.user.added_to_favorites.filter(movie=movie).exists():
             return Response('Уже добавлено в избранное')
-        Favorites.objects.create(movie=movie, user=request.user)
+        Favourites.objects.create(movie=movie, user=request.user)
         return Response('Добавлено в избранное')
 
     @action(['POST'], detail=True)
@@ -118,9 +118,3 @@ class FavoriteViewSet(ModelViewSet):
             return Response('Фильм не находится в списке избранных')
         request.user.added_to_favorites.filter(movie=movie).delete()
         return Response('Фильм удален из избранных')
-
-
-class ActorsViewSet(ModelViewSet):
-    queryset = Actor.objects.all()
-    serializer_class = ActorSerializer
-    permission_classes = [IsAdmin]

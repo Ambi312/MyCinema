@@ -1,11 +1,11 @@
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 
 from .serializers import *
 
@@ -15,29 +15,29 @@ class RegisterView(APIView):
         data = request.data
         serializer = RegisterSerializer(data=data)
         if serializer.is_valid(raise_exception=True):
-            serializer.create()
-            message = f'Вы успешно зарегистрированы. ' \
-                      f'Вам отправлено письмо с активацией'
-            return Response(message, status=201)
+            serializer.save()
+            return Response('Successfully registered', status=201)
 
 
 class ActivateView(APIView):
+    def get(self, request, activation_code):
+        User = get_user_model()
+        user = get_object_or_404(User, activation_code=activation_code)
+        user.is_active = True
+        user.activation_code = ''
+        user.save()
+        return Response('Your account activated!', status=200)
+
     def post(self, request):
-        data = request.data
-        serializer = ActivationSerializer(data=data)
-        if serializer.is_valid(raise_exception=True):
-            serializer.activate()
-            return Response('Ваш аккаунт успешно активирован')
-
-
-class ProfileView(APIView):
-    @method_decorator(cache_page(60*60*2))
-    @method_decorator(vary_on_headers("Authorization",))
-    def get(self, request, format=None):
-        content = {
-            'user_feed': request.user.get_user_feed()
-        }
-        return Response(content)
+        phone_number = request.data.get('phone_number')
+        code = request.data.get('activation_code')
+        user = MyUser.objects.filter(phone_number=phone_number, activation_code=code).first()
+        if not user:
+            return Response('There is no such user', status=400)
+        user.is_active = True
+        user.activation_code = ''
+        user.save()
+        return Response('You activate your account', status=200)
 
 
 class LoginView(ObtainAuthToken):

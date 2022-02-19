@@ -13,3 +13,4 @@ django-filter
 djoser
 celery
 django-celery-beat
+djangorestframework_jwt
